@@ -1,0 +1,42 @@
+# ninja log v6
+15	354	8038360537596338	DocMindAI_autogen/timestamp	618d1a53c14241fe
+15	354	8038360537596338	DocMindAI_autogen/mocs_compilation.cpp	618d1a53c14241fe
+15	354	8038360537596338	C:/Users/ASUS/Desktop/DocMind AI/build/DocMindAI_autogen/timestamp	618d1a53c14241fe
+213	802	8038376908227351	DocMindAI.exe	59acdca715b6612e
+15	354	8038360537596338	C:/Users/ASUS/Desktop/DocMind AI/build/DocMindAI_autogen/mocs_compilation.cpp	618d1a53c14241fe
+356	1897	8038316388206837	CMakeFiles/DocMindAI.dir/src/main.cpp.obj	d66e7757e4720a1b
+16	110	8038376907099537	DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+16	110	8038376907099537	C:/Users/ASUS/Desktop/DocMind AI/build/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+446	2252	8038360541904020	CMakeFiles/DocMindAI.dir/src/widgets/ThemeManager.cpp.obj	6a6812066e93d318
+375	1954	8038316388391676	CMakeFiles/DocMindAI.dir/src/utils/Logger.cpp.obj	5e5f564c0092257
+2024	5695	8038259635308462	CMakeFiles/DocMindAI.dir/src/editor/LineNumberArea.cpp.obj	deef541a3d38d5c2
+383	2582	8038315227609331	CMakeFiles/DocMindAI.dir/src/core/AppState.cpp.obj	c173cc0c9f3ec191
+898	2964	8038347073415960	CMakeFiles/DocMindAI.dir/src/preview/ScrollSyncManager.cpp.obj	9ab3d4602c502033
+1970	5980	8038259634772305	CMakeFiles/DocMindAI.dir/src/app/SettingsDialog.cpp.obj	5a96ba0faa50c50c
+2037	6004	8038259635443808	CMakeFiles/DocMindAI.dir/src/editor/FindReplaceDialog.cpp.obj	5fdec32ebc94a3d8
+375	2612	8038331010693326	CMakeFiles/DocMindAI.dir/src/widgets/TabManager.cpp.obj	e85111405ab5033a
+1021	3706	8038351970586097	CMakeFiles/DocMindAI.dir/DocMindAI_autogen/mocs_compilation.cpp.obj	dd56659a9f3d73fb
+110	213	8038376907192737	CMakeFiles/DocMindAI.dir/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp.obj	b9a8f89a9d2ad4f5
+390	2156	8038325634270082	CMakeFiles/DocMindAI.dir/src/preview/MarkdownRenderer.cpp.obj	ba271ca0082a3b43
+373	2506	8038315227509069	CMakeFiles/DocMindAI.dir/src/core/DocumentSession.cpp.obj	cd270b538a8a5949
+392	2663	8038261417721157	CMakeFiles/DocMindAI.dir/src/editor/MarkdownHighlighter.cpp.obj	effa55cc1444bbb6
+1052	3308	8038351970891735	CMakeFiles/DocMindAI.dir/src/preview/PreviewWidget.cpp.obj	eba714aa9f2a5a76
+1031	3457	8038351970681203	CMakeFiles/DocMindAI.dir/src/app/Application.cpp.obj	d8633c5162bf9c37
+369	2619	8038263959480937	CMakeFiles/DocMindAI.dir/src/editor/MarkdownEditor.cpp.obj	65a5e37f2f877005
+1042	3743	8038351970786479	CMakeFiles/DocMindAI.dir/src/app/MainWindow.cpp.obj	85bc06c54e107b85
+19	109	8038380407492766	DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+19	109	8038380407492766	C:/Users/ASUS/Desktop/DocMind AI/build/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+110	204	8038380407581831	CMakeFiles/DocMindAI.dir/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp.obj	b9a8f89a9d2ad4f5
+204	781	8038380408524261	DocMindAI.exe	59acdca715b6612e
+16	103	8038383653260314	DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+16	103	8038383653260314	C:/Users/ASUS/Desktop/DocMind AI/build/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+104	183	8038383653348537	CMakeFiles/DocMindAI.dir/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp.obj	b9a8f89a9d2ad4f5
+184	740	8038383654147938	DocMindAI.exe	59acdca715b6612e
+17	111	8038386275882552	DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+17	111	8038386275882552	C:/Users/ASUS/Desktop/DocMind AI/build/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+111	196	8038386275980539	CMakeFiles/DocMindAI.dir/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp.obj	b9a8f89a9d2ad4f5
+196	754	8038386276821459	DocMindAI.exe	59acdca715b6612e
+23	109	8038389888181001	DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+23	109	8038389888181001	C:/Users/ASUS/Desktop/DocMind AI/build/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp	31d19c88087a37e3
+109	188	8038389888269246	CMakeFiles/DocMindAI.dir/DocMindAI_autogen/3YJK5W5UP7/qrc_resources.cpp.obj	b9a8f89a9d2ad4f5
+188	752	8038389889049372	DocMindAI.exe	59acdca715b6612e

@@ -1,0 +1,9 @@
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/DocMindAI.dir
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/edit_cache.dir
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/rebuild_cache.dir
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/list_install_components.dir
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/install.dir
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/install/local.dir
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/install/strip.dir
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/DocMindAI_autogen_timestamp_deps.dir
+C:/Users/ASUS/Desktop/DocMind AI/build/CMakeFiles/DocMindAI_autogen.dir
