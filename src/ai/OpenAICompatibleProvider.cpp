@@ -163,6 +163,13 @@ QFuture<ChatResult> OpenAICompatibleProvider::chat(const ChatRequest& req) {
     auto iface = std::make_shared<QFutureInterface<ChatResult>>();
     iface->reportStarted();
 
+    if (m_config.apiKey.trimmed().isEmpty()) {
+        iface->reportException(std::make_exception_ptr(
+            std::runtime_error("API Key 未配置，请先在右侧 AI 服务设置中保存 API Key")));
+        iface->reportFinished();
+        return iface->future();
+    }
+
     ChatRequest r = req;
     r.stream = false;
     if (r.model.isEmpty()) r.model = m_config.chatModel;
@@ -245,6 +252,13 @@ QFuture<ChatResult> OpenAICompatibleProvider::chat(const ChatRequest& req) {
 QFuture<ChatResult> OpenAICompatibleProvider::chatStream(const ChatRequest& req) {
     auto iface = std::make_shared<QFutureInterface<ChatResult>>();
     iface->reportStarted();
+
+    if (m_config.apiKey.trimmed().isEmpty()) {
+        iface->reportException(std::make_exception_ptr(
+            std::runtime_error("API Key 未配置，请先在右侧 AI 服务设置中保存 API Key")));
+        iface->reportFinished();
+        return iface->future();
+    }
 
     ChatRequest r = req;
     r.stream = true;
@@ -342,6 +356,12 @@ QFuture<ChatResult> OpenAICompatibleProvider::chatStream(const ChatRequest& req)
 QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest& req) {
     auto iface = std::make_shared<QFutureInterface<EmbeddingResult>>();
     iface->reportStarted();
+
+    if (m_config.apiKey.trimmed().isEmpty()) {
+        iface->reportResult(EmbeddingResult{});
+        iface->reportFinished();
+        return iface->future();
+    }
 
     EmbeddingRequest r = req;
     if (r.model.isEmpty()) r.model = m_config.embeddingModel;

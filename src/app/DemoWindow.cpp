@@ -19,6 +19,11 @@
 #include <QListWidgetItem>
 #include <QFont>
 #include <QApplication>
+#include <QSplitter>
+#include <QSaveFile>
+#include <QTextStream>
+#include <QTextCursor>
+#include <QFutureWatcher>
 
 namespace dmc::app {
 
@@ -88,20 +93,74 @@ DemoWindow::DemoWindow(QWidget* parent)
 
     loadSettings();
     refreshKnowledgeStatus();
-    log(QStringLiteral("DocMind AI Demo 启动；DB: ") + dbPath());
+    updatePreview();
+    log(QStringLiteral("DocMind AI 课程设计版启动；DB: ") + dbPath());
 }
 
 DemoWindow::~DemoWindow() = default;
 
 void DemoWindow::setupUi() {
-    setWindowTitle(QStringLiteral("DocMind AI — 模块 C Demo"));
-    resize(900, 700);
+    setWindowTitle(QStringLiteral("DocMind AI — 课程设计版"));
+    resize(1280, 820);
 
     auto* central = new QWidget(this);
     auto* root = new QVBoxLayout(central);
 
+    auto* splitter = new QSplitter(Qt::Horizontal, central);
+    auto* leftPane = new QWidget(splitter);
+    auto* leftLayout = new QVBoxLayout(leftPane);
+    auto* rightPane = new QWidget(splitter);
+    auto* rightLayout = new QVBoxLayout(rightPane);
+
+    // ── 编辑器区 ───────────────────────────────────────────────────────────
+    auto* editorGroup = new QGroupBox(QStringLiteral("① Markdown 编辑器"), leftPane);
+    auto* editorLayout = new QVBoxLayout(editorGroup);
+    auto* editorBtns = new QHBoxLayout();
+    m_newDocBtn = new QPushButton(QStringLiteral("新建"), editorGroup);
+    m_openDocBtn = new QPushButton(QStringLiteral("打开"), editorGroup);
+    m_saveDocBtn = new QPushButton(QStringLiteral("保存 MD"), editorGroup);
+    m_exportHtmlBtn = new QPushButton(QStringLiteral("导出 HTML"), editorGroup);
+    m_importEditorBtn = new QPushButton(QStringLiteral("加入知识库"), editorGroup);
+    editorBtns->addWidget(m_newDocBtn);
+    editorBtns->addWidget(m_openDocBtn);
+    editorBtns->addWidget(m_saveDocBtn);
+    editorBtns->addWidget(m_exportHtmlBtn);
+    editorBtns->addWidget(m_importEditorBtn);
+    editorBtns->addStretch();
+    editorLayout->addLayout(editorBtns);
+
+    auto* editorSplit = new QSplitter(Qt::Vertical, editorGroup);
+    m_editor = new QTextEdit(editorSplit);
+    m_editor->setPlaceholderText(QStringLiteral("# 在这里写 Markdown\n\n可以保存、导出 HTML，也可以导入知识库后做问答。"));
+    m_preview = new QTextBrowser(editorSplit);
+    m_preview->setOpenExternalLinks(true);
+    editorSplit->addWidget(m_editor);
+    editorSplit->addWidget(m_preview);
+    editorSplit->setStretchFactor(0, 3);
+    editorSplit->setStretchFactor(1, 2);
+    editorLayout->addWidget(editorSplit, 1);
+
+    auto* aiEditBtns = new QHBoxLayout();
+    m_polishBtn = new QPushButton(QStringLiteral("AI 润色选中/全文"), editorGroup);
+    m_summaryBtn = new QPushButton(QStringLiteral("AI 摘要全文"), editorGroup);
+    aiEditBtns->addWidget(m_polishBtn);
+    aiEditBtns->addWidget(m_summaryBtn);
+    aiEditBtns->addStretch();
+    editorLayout->addLayout(aiEditBtns);
+
+    leftLayout->addWidget(editorGroup, 1);
+
+    connect(m_newDocBtn, &QPushButton::clicked, this, &DemoWindow::onNewDocument);
+    connect(m_openDocBtn, &QPushButton::clicked, this, &DemoWindow::onOpenDocument);
+    connect(m_saveDocBtn, &QPushButton::clicked, this, &DemoWindow::onSaveDocument);
+    connect(m_exportHtmlBtn, &QPushButton::clicked, this, &DemoWindow::onExportHtml);
+    connect(m_importEditorBtn, &QPushButton::clicked, this, &DemoWindow::onImportEditorToKnowledge);
+    connect(m_polishBtn, &QPushButton::clicked, this, &DemoWindow::onPolishSelection);
+    connect(m_summaryBtn, &QPushButton::clicked, this, &DemoWindow::onSummarizeDocument);
+    connect(m_editor, &QTextEdit::textChanged, this, &DemoWindow::updatePreview);
+
     // ── 设置区 ────────────────────────────────────────────────────────────
-    auto* settingGroup = new QGroupBox(QStringLiteral("① AI 服务设置"), central);
+    auto* settingGroup = new QGroupBox(QStringLiteral("② AI 服务设置"), rightPane);
     auto* form = new QFormLayout(settingGroup);
     m_baseUrl   = new QLineEdit(QStringLiteral("https://api.openai.com"), settingGroup);
     m_apiKey    = new QLineEdit(settingGroup);
@@ -117,7 +176,7 @@ void DemoWindow::setupUi() {
     connect(m_saveBtn, &QPushButton::clicked, this, &DemoWindow::onSaveSettings);
 
     // ── 知识库区 ───────────────────────────────────────────────────────────
-    auto* kbGroup = new QGroupBox(QStringLiteral("② 知识库"), central);
+    auto* kbGroup = new QGroupBox(QStringLiteral("③ 知识库"), rightPane);
     auto* kbLayout = new QVBoxLayout(kbGroup);
     auto* kbBtnRow = new QHBoxLayout();
     m_importBtn = new QPushButton(QStringLiteral("导入文件 (MD/DOCX/PDF/HTML)"), kbGroup);
@@ -132,11 +191,11 @@ void DemoWindow::setupUi() {
     connect(m_clearBtn,  &QPushButton::clicked, this, &DemoWindow::onClearKnowledge);
 
     // ── 问答区 ─────────────────────────────────────────────────────────────
-    auto* askGroup = new QGroupBox(QStringLiteral("③ 知识库问答"), central);
+    auto* askGroup = new QGroupBox(QStringLiteral("④ AI 问答"), rightPane);
     auto* askLayout = new QVBoxLayout(askGroup);
     auto* askRow = new QHBoxLayout();
     m_question = new QLineEdit(askGroup);
-    m_question->setPlaceholderText(QStringLiteral("问点啥..."));
+    m_question->setPlaceholderText(QStringLiteral("问知识库；或输入 general: 直接问 AI"));
     m_askBtn   = new QPushButton(QStringLiteral("提问"), askGroup);
     askRow->addWidget(m_question);
     askRow->addWidget(m_askBtn);
@@ -156,20 +215,183 @@ void DemoWindow::setupUi() {
     connect(m_question, &QLineEdit::returnPressed, this, &DemoWindow::onAsk);
 
     // ── 日志 ──────────────────────────────────────────────────────────────
-    m_log = new QPlainTextEdit(central);
+    m_log = new QPlainTextEdit(rightPane);
     m_log->setReadOnly(true);
     m_log->setMaximumBlockCount(500);
     QFont monoFont(QStringLiteral("Menlo"));
     monoFont.setStyleHint(QFont::Monospace);
     m_log->setFont(monoFont);
 
-    root->addWidget(settingGroup);
-    root->addWidget(kbGroup);
-    root->addWidget(askGroup, 1);
-    root->addWidget(new QLabel(QStringLiteral("日志:"), central));
-    root->addWidget(m_log, 1);
+    rightLayout->addWidget(settingGroup);
+    rightLayout->addWidget(kbGroup);
+    rightLayout->addWidget(askGroup, 1);
+    rightLayout->addWidget(new QLabel(QStringLiteral("日志:"), rightPane));
+    rightLayout->addWidget(m_log, 1);
+
+    splitter->addWidget(leftPane);
+    splitter->addWidget(rightPane);
+    splitter->setStretchFactor(0, 3);
+    splitter->setStretchFactor(1, 2);
+    root->addWidget(splitter, 1);
 
     setCentralWidget(central);
+}
+
+QString DemoWindow::editorTitle() const {
+    if (!m_currentFilePath.isEmpty()) return QFileInfo(m_currentFilePath).fileName();
+    return QStringLiteral("未命名文档.md");
+}
+
+void DemoWindow::updatePreview() {
+    if (!m_preview || !m_editor) return;
+    m_preview->setMarkdown(m_editor->toPlainText());
+}
+
+void DemoWindow::onNewDocument() {
+    m_currentFilePath.clear();
+    m_editor->clear();
+    m_editor->setFocus();
+    log(QStringLiteral("✓ 新建文档"));
+}
+
+void DemoWindow::onOpenDocument() {
+    QString path = QFileDialog::getOpenFileName(
+        this, QStringLiteral("打开 Markdown / 文本文档"),
+        QString(),
+        QStringLiteral("文档 (*.md *.markdown *.txt *.html *.htm);;所有文件 (*)"));
+    if (path.isEmpty()) return;
+
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, QStringLiteral("打开失败"), f.errorString());
+        return;
+    }
+    m_currentFilePath = path;
+    m_editor->setPlainText(QString::fromUtf8(f.readAll()));
+    log(QStringLiteral("✓ 已打开: ") + path);
+}
+
+void DemoWindow::onSaveDocument() {
+    QString path = m_currentFilePath;
+    if (path.isEmpty()) {
+        path = QFileDialog::getSaveFileName(
+            this, QStringLiteral("保存 Markdown"),
+            QDir::homePath() + QStringLiteral("/untitled.md"),
+            QStringLiteral("Markdown (*.md);;Text (*.txt);;所有文件 (*)"));
+        if (path.isEmpty()) return;
+    }
+
+    QSaveFile f(path);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, QStringLiteral("保存失败"), f.errorString());
+        return;
+    }
+    f.write(m_editor->toPlainText().toUtf8());
+    if (!f.commit()) {
+        QMessageBox::warning(this, QStringLiteral("保存失败"), f.errorString());
+        return;
+    }
+    m_currentFilePath = path;
+    log(QStringLiteral("✓ 已保存: ") + path);
+}
+
+void DemoWindow::onExportHtml() {
+    QString path = QFileDialog::getSaveFileName(
+        this, QStringLiteral("导出 HTML"),
+        QDir::homePath() + QStringLiteral("/docmind-export.html"),
+        QStringLiteral("HTML (*.html)"));
+    if (path.isEmpty()) return;
+
+    const QString html = QStringLiteral(
+        "<!doctype html><html><head><meta charset=\"utf-8\">"
+        "<title>%1</title><style>body{max-width:860px;margin:40px auto;"
+        "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
+        "line-height:1.7;padding:0 20px;}pre,code{background:#f6f8fa;}"
+        "pre{padding:12px;overflow:auto;}blockquote{color:#666;border-left:4px solid #ddd;padding-left:12px;}</style>"
+        "</head><body>%2</body></html>")
+        .arg(editorTitle().toHtmlEscaped(), m_editor->document()->toHtml());
+
+    QSaveFile f(path);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, QStringLiteral("导出失败"), f.errorString());
+        return;
+    }
+    f.write(html.toUtf8());
+    if (!f.commit()) {
+        QMessageBox::warning(this, QStringLiteral("导出失败"), f.errorString());
+        return;
+    }
+    log(QStringLiteral("✓ 已导出 HTML: ") + path);
+}
+
+void DemoWindow::onImportEditorToKnowledge() {
+    const QString content = m_editor->toPlainText().trimmed();
+    if (content.isEmpty()) {
+        QMessageBox::information(this, QStringLiteral("提示"), QStringLiteral("编辑器内容为空。"));
+        return;
+    }
+    knowledge::IngestionRequest r;
+    r.sourceContent = content;
+    r.sourceFormat = QStringLiteral("md");
+    r.title = editorTitle();
+    log(QStringLiteral("→ 正在把当前编辑器内容加入知识库"));
+    m_ingest->ingest(r);
+}
+
+void DemoWindow::runEditorAiAction(const QString& instruction,
+                                   bool replaceSelection,
+                                   const QString& label) {
+    refreshProvider();
+    QString input = m_editor->textCursor().selectedText();
+    input.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
+    if (input.trimmed().isEmpty()) input = m_editor->toPlainText();
+    if (input.trimmed().isEmpty()) return;
+
+    ai::ChatRequest req;
+    req.model = m_chatModel->text().trimmed();
+    req.temperature = 0.4f;
+    req.messages.append({ai::Role::System,
+        QStringLiteral("你是 DocMind AI 写作助手。保留 Markdown 结构，只输出处理后的正文。")});
+    req.messages.append({ai::Role::User, instruction + QStringLiteral("\n\n") + input});
+
+    m_polishBtn->setEnabled(false);
+    m_summaryBtn->setEnabled(false);
+    log(QStringLiteral("→ ") + label);
+
+    QFuture<ai::ChatResult> f = m_provider->chat(req);
+    auto* w = new QFutureWatcher<ai::ChatResult>(this);
+    connect(w, &QFutureWatcher<ai::ChatResult>::finished, this,
+        [this, w, replaceSelection, label]() {
+            w->deleteLater();
+            m_polishBtn->setEnabled(true);
+            m_summaryBtn->setEnabled(true);
+            try {
+                const ai::ChatResult r = w->result();
+                if (replaceSelection && m_editor->textCursor().hasSelection()) {
+                    QTextCursor c = m_editor->textCursor();
+                    c.insertText(r.content);
+                } else {
+                    m_answer->setPlainText(r.content);
+                }
+                log(QStringLiteral("✓ ") + label + QStringLiteral("完成"));
+            } catch (const std::exception& e) {
+                m_answer->setPlainText(QStringLiteral("AI 调用失败: ") + QString::fromUtf8(e.what()));
+                log(QStringLiteral("✗ ") + label + QStringLiteral("失败"));
+            }
+        });
+    w->setFuture(f);
+}
+
+void DemoWindow::onPolishSelection() {
+    runEditorAiAction(QStringLiteral("请润色下面的 Markdown 文本，使表达更自然清晰，不改变原意。"),
+                      true,
+                      QStringLiteral("AI 润色"));
+}
+
+void DemoWindow::onSummarizeDocument() {
+    runEditorAiAction(QStringLiteral("请总结下面文档的核心内容，输出 5 条以内要点。"),
+                      false,
+                      QStringLiteral("AI 摘要"));
 }
 
 void DemoWindow::loadSettings() {
@@ -257,9 +479,33 @@ void DemoWindow::onClearKnowledge() {
 void DemoWindow::onAsk() {
     QString q = m_question->text().trimmed();
     if (q.isEmpty()) return;
+    refreshProvider();
     m_askBtn->setEnabled(false);
     m_answer->clear();
     m_citations->clear();
+
+    if (q.startsWith(QStringLiteral("general:"), Qt::CaseInsensitive)) {
+        const QString prompt = q.mid(QStringLiteral("general:").size()).trimmed();
+        ai::ChatRequest req;
+        req.model = m_chatModel->text().trimmed();
+        req.messages.append({ai::Role::System, QStringLiteral("你是 DocMind AI 助手，回答要简洁清楚。")});
+        req.messages.append({ai::Role::User, prompt});
+        m_answer->setPlainText(QStringLiteral("AI 思考中..."));
+        QFuture<ai::ChatResult> f = m_provider->chat(req);
+        auto* w = new QFutureWatcher<ai::ChatResult>(this);
+        connect(w, &QFutureWatcher<ai::ChatResult>::finished, this, [this, w]() {
+            w->deleteLater();
+            try {
+                m_answer->setPlainText(w->result().content);
+            } catch (const std::exception& e) {
+                m_answer->setPlainText(QStringLiteral("AI 调用失败: ") + QString::fromUtf8(e.what()));
+            }
+            m_askBtn->setEnabled(true);
+        });
+        w->setFuture(f);
+        return;
+    }
+
     m_answer->setPlainText(QStringLiteral("检索中..."));
 
     // 1. 知识库检索
