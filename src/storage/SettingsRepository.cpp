@@ -18,6 +18,7 @@ ProviderSettings hydrate(const QSqlQuery& q) {
     s.id              = q.value(QStringLiteral("id")).toLongLong();
     s.displayName     = q.value(QStringLiteral("display_name")).toString();
     s.baseUrl         = q.value(QStringLiteral("base_url")).toString();
+    s.embeddingBaseUrl= q.value(QStringLiteral("embedding_base_url")).toString();
     s.apiKeyRef       = q.value(QStringLiteral("api_key_ref")).toString();
     s.chatModel       = q.value(QStringLiteral("chat_model")).toString();
     s.embeddingModel  = q.value(QStringLiteral("embedding_model")).toString();
@@ -72,11 +73,12 @@ qint64 SettingsRepository::upsertProvider(const ProviderSettings& s) {
     QString ts = nowUtc();
     if (s.id > 0) {
         q.prepare(QStringLiteral(
-            "UPDATE ai_providers SET display_name=?, base_url=?, api_key_ref=?, "
+            "UPDATE ai_providers SET display_name=?, base_url=?, embedding_base_url=?, api_key_ref=?, "
             "  chat_model=?, embedding_model=?, request_timeout_ms=?, proxy_url=?, "
             "  updated_at=? WHERE id=?"));
         q.addBindValue(s.displayName);
         q.addBindValue(s.baseUrl);
+        q.addBindValue(s.embeddingBaseUrl.isEmpty() ? s.baseUrl : s.embeddingBaseUrl);
         q.addBindValue(s.apiKeyRef);
         q.addBindValue(s.chatModel);
         q.addBindValue(s.embeddingModel);
@@ -94,11 +96,12 @@ qint64 SettingsRepository::upsertProvider(const ProviderSettings& s) {
 
     q.prepare(QStringLiteral(
         "INSERT INTO ai_providers "
-        "(display_name, base_url, api_key_ref, chat_model, embedding_model, "
+        "(display_name, base_url, embedding_base_url, api_key_ref, chat_model, embedding_model, "
         " request_timeout_ms, proxy_url, is_default, created_at, updated_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
     q.addBindValue(s.displayName);
     q.addBindValue(s.baseUrl);
+    q.addBindValue(s.embeddingBaseUrl.isEmpty() ? s.baseUrl : s.embeddingBaseUrl);
     q.addBindValue(s.apiKeyRef);
     q.addBindValue(s.chatModel);
     q.addBindValue(s.embeddingModel);
@@ -176,6 +179,7 @@ SettingsRepository::resolveProviderConfig(qint64 id) const {
 
     dmc::ai::ProviderConfig cfg;
     cfg.baseUrl         = s->baseUrl;
+    cfg.embeddingBaseUrl= s->embeddingBaseUrl.isEmpty() ? s->baseUrl : s->embeddingBaseUrl;
     cfg.chatModel       = s->chatModel;
     cfg.embeddingModel  = s->embeddingModel;
     cfg.requestTimeoutMs= s->requestTimeoutMs > 0 ? s->requestTimeoutMs : 60000;

@@ -16,6 +16,7 @@
 
 3. AI 功能
    - 保存 OpenAI-compatible API 设置
+   - 文本生成 Base URL 与向量 Base URL 可分开配置
    - AI 润色选中内容或全文
    - AI 摘要全文
    - 知识库问答，回答附带来源
@@ -50,3 +51,14 @@ arch -x86_64 .deps/venv/bin/cmake --build .build/course-design-demo-qt683-x64-sd
 3. 点击“加入知识库”，再在右侧问答框提问。
 4. 如果配置了 API Key，可以展示 AI 润色、AI 摘要和知识库问答。
 5. 如果没有 API Key，可以展示编辑器、导入导出、关键词检索和 API Key 未配置提示。
+
+## 阿里百炼示例配置
+
+如果文本生成和向量都使用阿里百炼兼容 OpenAI 接口，可以这样填：
+
+- 文本 Base URL：`https://dashscope.aliyuncs.com/compatible-mode`
+- 向量 Base URL：`https://dashscope.aliyuncs.com/compatible-mode`
+- 聊天模型：`qwen-plus`
+- 嵌入模型：`text-embedding-v4`
+
+如果文本生成使用别的 OpenAI-compatible 服务，而向量使用阿里百炼，只需要把“向量 Base URL”单独填成阿里地址即可。

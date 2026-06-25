@@ -76,6 +76,7 @@ bool DbMigrator::applyV1(QString* error) {
             "  id                INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  display_name      TEXT NOT NULL,"
             "  base_url          TEXT NOT NULL,"
+            "  embedding_base_url TEXT,"
             "  api_key_ref       TEXT,"
             "  chat_model        TEXT,"
             "  embedding_model   TEXT,"
@@ -86,6 +87,16 @@ bool DbMigrator::applyV1(QString* error) {
             "  updated_at        TEXT NOT NULL)"))) {
         if (error) *error = q.lastError().text();
         return false;
+    }
+
+    // 兼容已经创建过的 v1 数据库：补充向量服务独立 Base URL。
+    if (!q.exec(QStringLiteral(
+            "ALTER TABLE ai_providers ADD COLUMN embedding_base_url TEXT"))) {
+        const QString msg = q.lastError().text().toLower();
+        if (!msg.contains(QStringLiteral("duplicate column"))) {
+            if (error) *error = q.lastError().text();
+            return false;
+        }
     }
 
     // 知识库文档

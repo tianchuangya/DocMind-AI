@@ -145,7 +145,8 @@ struct AIErrorInfo {
 // ─── Provider 配置 ─────────────────────────────────────────────────────────────
 
 struct ProviderConfig {
-    QString baseUrl;        // 如 "https://api.openai.com"，自动补 /v1
+    QString baseUrl;        // 聊天 Base URL，如 "https://api.openai.com"，自动补 /v1
+    QString embeddingBaseUrl;// 向量 Base URL；为空时沿用 baseUrl
     QString apiKey;         // 由 SecureCredentialStore 注入，不入库
     QString chatModel;      // 默认聊天模型
     QString embeddingModel; // 默认嵌入模型

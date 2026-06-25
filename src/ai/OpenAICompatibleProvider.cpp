@@ -108,8 +108,11 @@ OpenAICompatibleProvider::~OpenAICompatibleProvider() = default;
 void OpenAICompatibleProvider::applyConfig(const ProviderConfig& cfg) {
     m_config = cfg;
     LOG_INFO("OpenAICompatibleProvider",
-             QString("Configured base=%1 chat=%2 emb=%3")
-                 .arg(cfg.baseUrl, cfg.chatModel, cfg.embeddingModel));
+             QString("Configured chatBase=%1 embeddingBase=%2 chat=%3 emb=%4")
+                 .arg(cfg.baseUrl,
+                      cfg.embeddingBaseUrl.isEmpty() ? cfg.baseUrl : cfg.embeddingBaseUrl,
+                      cfg.chatModel,
+                      cfg.embeddingModel));
 }
 
 QString OpenAICompatibleProvider::chatUrl() const {
@@ -117,7 +120,10 @@ QString OpenAICompatibleProvider::chatUrl() const {
 }
 
 QString OpenAICompatibleProvider::embeddingsUrl() const {
-    return normalizeBaseUrl(m_config.baseUrl) + QStringLiteral("/embeddings");
+    const QString base = m_config.embeddingBaseUrl.trimmed().isEmpty()
+        ? m_config.baseUrl
+        : m_config.embeddingBaseUrl;
+    return normalizeBaseUrl(base) + QStringLiteral("/embeddings");
 }
 
 AIErrorInfo OpenAICompatibleProvider::mapError(int httpStatus, const QByteArray& body,

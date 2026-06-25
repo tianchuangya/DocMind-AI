@@ -27,6 +27,7 @@ struct ProviderSettings {
     qint64  id = 0;         // SQLite 自增主键
     QString displayName;
     QString baseUrl;
+    QString embeddingBaseUrl;
     QString apiKeyRef;      // SecureCredentialStore 中的 key
     QString chatModel;
     QString embeddingModel;
