@@ -1,0 +1,30 @@
+# Build artifacts
+build/
+out/
+cmake-build-*/
+*.o
+*.obj
+*.exe
+
+# IDE / 编辑器
+.vscode/
+.idea/
+*.user
+*.user.*
+*.kdev4
+*.swp
+
+# macOS
+.DS_Store
+
+# 日志和运行时数据
+debug.log
+*.log
+credentials.dat
+docmind.db
+*.db-journal
+
+# 打包产物
+*.dmg
+*.pkg
+*.app
