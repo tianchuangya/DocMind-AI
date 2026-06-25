@@ -178,6 +178,7 @@ QFuture<IngestionResult> KnowledgeIngestionService::ingest(const IngestionReques
         if (provider && !chunkIds.isEmpty()) {
             // 把每个 chunk 文本拼到 embedding 请求；首期一次性批量
             ai::EmbeddingRequest ereq;
+            ereq.timeoutMs = 15000;
             ereq.inputs.reserve(chunks.size());
             for (const Chunk& c : chunks) {
                 ereq.inputs.append(c.text);

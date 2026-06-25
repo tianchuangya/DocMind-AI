@@ -371,9 +371,27 @@ QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest&
     nr.setRawHeader("Authorization", QStringLiteral("Bearer %1").arg(m_config.apiKey).toUtf8());
 
     QPointer<QNetworkReply> reply = m_nam->post(nr, buildEmbeddingBody(r));
+    int timeout = r.timeoutMs.value_or(m_config.requestTimeoutMs);
+    auto timer = new QTimer(reply.data());
+    timer->setInterval(timeout);
+    timer->setSingleShot(true);
+
+    QObject::connect(timer, &QTimer::timeout, reply.data(), [this, reply, iface, r, timeout]() {
+        if (!reply) return;
+        AIErrorInfo err;
+        err.code = AIError::Timeout;
+        err.message = QStringLiteral("Embedding request timed out after %1 ms").arg(timeout);
+        err.userTag = r.userTag;
+        LOG_WARN("OpenAICompatibleProvider", err.message);
+        reply->abort();
+        emit requestFailed(err);
+        iface->reportException(std::make_exception_ptr(std::runtime_error(err.message.toStdString())));
+        iface->reportFinished();
+    });
 
     QObject::connect(reply.data(), &QNetworkReply::finished, reply.data(),
-        [this, reply, iface, r]() {
+        [this, reply, iface, r, timer]() {
+            timer->stop();
             if (!reply) { iface->reportFinished(); return; }
             reply->deleteLater();
             int http = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -425,6 +443,7 @@ QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest&
             iface->reportFinished();
         });
 
+    timer->start();
     return iface->future();
 }
 
