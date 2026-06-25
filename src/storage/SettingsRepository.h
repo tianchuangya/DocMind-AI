@@ -24,7 +24,7 @@
 namespace dmc::storage {
 
 struct ProviderSettings {
-    QString id;             // 用户给配置起的 ID，如 "openai-default"
+    qint64  id = 0;         // SQLite 自增主键
     QString displayName;
     QString baseUrl;
     QString apiKeyRef;      // SecureCredentialStore 中的 key

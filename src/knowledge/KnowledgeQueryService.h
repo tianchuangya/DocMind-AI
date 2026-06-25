@@ -16,13 +16,13 @@
 
 #include "knowledge/KnowledgeTypes.h"
 #include "knowledge/KnowledgeRepository.h"
+#include "ai/AIProvider.h"
 
 #include <QObject>
 #include <QString>
 #include <QList>
 #include <QFuture>
 
-namespace dmc::ai       { class AIProvider; }
 namespace dmc::knowledge { class KnowledgeRepository; }
 
 namespace dmc::knowledge {

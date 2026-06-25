@@ -7,6 +7,7 @@
 #include <QStringList>
 #include <QStack>
 #include <QRegularExpression>
+#include <algorithm>
 
 namespace dmc::knowledge {
 
@@ -25,7 +26,7 @@ QStringList splitHard(const QString& text, int maxChars) {
     QStringList out;
     int pos = 0;
     while (pos < text.size()) {
-        int len = std::min(maxChars, text.size() - pos);
+        int len = std::min(maxChars, int(text.size() - pos));
         // 优先在换行/句号处切
         if (pos + len < text.size()) {
             int cutLine = text.lastIndexOf(QLatin1Char('\n'), pos + len);

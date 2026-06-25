@@ -331,6 +331,11 @@ void DemoWindow::onBatchProgress(int done, int total, const QString& current) {
                           .arg(done).arg(total).arg(QFileInfo(current).fileName()));
 }
 
+void DemoWindow::onBatchFinished() {
+    log(QStringLiteral("✓ 批量导入完成"));
+    refreshKnowledgeStatus();
+}
+
 void DemoWindow::refreshKnowledgeStatus() {
     if (!m_repo) return;
     auto docs = m_repo->allDocuments();

@@ -4,6 +4,7 @@
 // 批量：串行执行以便错误隔离；每文件完成发 fileIngested / fileFailed。
 #include "knowledge/KnowledgeIngestionService.h"
 #include "knowledge/ChunkingStrategy.h"
+#include "knowledge/KnowledgeRepository.h"
 #include "utils/Logger.h"
 
 #include <QtConcurrent>
@@ -15,6 +16,7 @@
 #include <QPointer>
 #include <atomic>
 #include <functional>
+#include <memory>
 
 namespace dmc::knowledge {
 
@@ -132,6 +134,14 @@ QFuture<IngestionResult> KnowledgeIngestionService::ingest(const IngestionReques
         ein.preferStructure= true;
         ExtractionOutput eout = extractor ? extractor->extract(ein)
                                             : ExtractionOutput{};
+        if (!extractor && !req.sourceContent.isEmpty()) {
+            eout.ok = true;
+            eout.plainText = req.sourceContent;
+            eout.markdownText = req.sourceContent;
+            eout.blocks = {
+                StructBlock{BlockType::Paragraph, 0, req.sourceContent, 1, -1}
+            };
+        }
         if (!eout.ok) {
             if (repo) repo->updateDocumentStatus(docId, IngestionStatus::Failed,
                                                   eout.errorMessage, 0);
@@ -224,8 +234,8 @@ void KnowledgeIngestionService::ingestBatch(const QList<IngestionRequest>& reqs)
     emit batchProgress(0, total, reqs[0].sourcePath);
 
     // 用 std::function 包装递归 lambda：每完成一个发进度，下一个再启动
-    std::function<void(int)> launchNext;
-    launchNext = [self, reqs, total, done, this, &launchNext](int idx) {
+    auto launchNext = std::make_shared<std::function<void(int)>>();
+    *launchNext = [self, reqs, total, done, this, launchNext](int idx) {
         if (!self || idx >= total) {
             if (self) emit self->batchFinished();
             return;
@@ -233,7 +243,7 @@ void KnowledgeIngestionService::ingestBatch(const QList<IngestionRequest>& reqs)
         QFuture<IngestionResult> f = ingest(reqs[idx]);
         QFutureWatcher<IngestionResult>* w = new QFutureWatcher<IngestionResult>();
         QObject::connect(w, &QFutureWatcher<IngestionResult>::finished, self.data(),
-            [self, w, done, total, idx, reqs, &launchNext]() {
+            [self, w, done, total, idx, reqs, launchNext]() {
                 w->deleteLater();
                 done->fetch_add(1);
                 if (!self) return;
@@ -243,12 +253,12 @@ void KnowledgeIngestionService::ingestBatch(const QList<IngestionRequest>& reqs)
                     int next = idx + 1;
                     emit self->batchProgress(done->load(), total,
                                               next < total ? reqs[next].sourcePath : QString());
-                    launchNext(next);
+                    (*launchNext)(next);
                 }
             });
         w->setFuture(f);
     };
-    launchNext(0);
+    (*launchNext)(0);
 }
 
 void KnowledgeIngestionService::cancelDocument(qint64 documentId) {

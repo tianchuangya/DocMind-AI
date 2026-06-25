@@ -12,6 +12,7 @@
 
 #include "knowledge/KnowledgeTypes.h"
 #include "knowledge/ChunkingStrategy.h"
+#include "ai/AIProvider.h"
 
 #include <QObject>
 #include <QString>
@@ -20,7 +21,6 @@
 #include <QFuture>
 #include <functional>
 
-namespace dmc::ai   { class AIProvider; }
 namespace dmc::knowledge { class KnowledgeRepository; }
 
 namespace dmc::knowledge {
@@ -97,7 +97,7 @@ signals:
     // 批量场景：每个文件完成
     void fileIngested(const IngestionResult& result);
     void fileFailed(const QString& sourcePath, const QString& error);
-    void batchProgress(int done, int total);
+    void batchProgress(int done, int total, const QString& currentSource);
     void batchFinished();
 
 private:

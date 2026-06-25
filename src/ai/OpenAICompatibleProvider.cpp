@@ -16,6 +16,8 @@
 #include <QPointer>
 #include <QFutureInterface>
 #include <QRegularExpression>
+#include <exception>
+#include <stdexcept>
 
 namespace dmc::ai {
 
@@ -185,7 +187,7 @@ QFuture<ChatResult> OpenAICompatibleProvider::chat(const ChatRequest& req) {
         LOG_WARN("OpenAICompatibleProvider", err.message);
         reply->abort();
         emit requestFailed(err);
-        iface->reportException(std::runtime_error(err.message.toStdString()));
+        iface->reportException(std::make_exception_ptr(std::runtime_error(err.message.toStdString())));
         iface->reportFinished();
     });
 
@@ -208,13 +210,13 @@ QFuture<ChatResult> OpenAICompatibleProvider::chat(const ChatRequest& req) {
             err.message = reply->errorString();
             err.userTag = r.userTag;
             emit requestFailed(err);
-            iface->reportException(std::runtime_error(err.message.toStdString()));
+            iface->reportException(std::make_exception_ptr(std::runtime_error(err.message.toStdString())));
             iface->reportFinished();
             return;
         }
         if (http >= 400) {
             emit requestFailed(mapError(http, body, r.userTag));
-            iface->reportException(std::runtime_error("HTTP " + std::to_string(http)));
+            iface->reportException(std::make_exception_ptr(std::runtime_error("HTTP " + std::to_string(http))));
             iface->reportFinished();
             return;
         }
@@ -226,7 +228,7 @@ QFuture<ChatResult> OpenAICompatibleProvider::chat(const ChatRequest& req) {
             err.message = QStringLiteral("Invalid JSON response");
             err.userTag = r.userTag;
             emit requestFailed(err);
-            iface->reportException(std::runtime_error(err.message.toStdString()));
+            iface->reportException(std::make_exception_ptr(std::runtime_error(err.message.toStdString())));
             iface->reportFinished();
             return;
         }
@@ -302,7 +304,7 @@ QFuture<ChatResult> OpenAICompatibleProvider::chatStream(const ChatRequest& req)
             int http = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
             if (http >= 400) {
                 emit requestFailed(mapError(http, reply->readAll(), r.userTag));
-                iface->reportException(std::runtime_error("HTTP " + std::to_string(http)));
+                iface->reportException(std::make_exception_ptr(std::runtime_error("HTTP " + std::to_string(http))));
                 iface->reportFinished();
                 return;
             }
@@ -328,7 +330,7 @@ QFuture<ChatResult> OpenAICompatibleProvider::chatStream(const ChatRequest& req)
             err.message = reply->errorString();
             err.userTag = r.userTag;
             emit requestFailed(err);
-            iface->reportException(std::runtime_error(err.message.toStdString()));
+            iface->reportException(std::make_exception_ptr(std::runtime_error(err.message.toStdString())));
             iface->reportFinished();
         });
 
@@ -359,7 +361,7 @@ QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest&
 
             if (http >= 400) {
                 emit requestFailed(mapError(http, body, r.userTag));
-                iface->reportException(std::runtime_error("HTTP " + std::to_string(http)));
+                iface->reportException(std::make_exception_ptr(std::runtime_error("HTTP " + std::to_string(http))));
                 iface->reportFinished();
                 return;
             }
@@ -370,7 +372,7 @@ QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest&
                 err.code = AIError::ResponseFormatInvalid;
                 err.userTag = r.userTag;
                 emit requestFailed(err);
-                iface->reportException(std::runtime_error("Invalid JSON"));
+                iface->reportException(std::make_exception_ptr(std::runtime_error("Invalid JSON")));
                 iface->reportFinished();
                 return;
             }
@@ -399,7 +401,7 @@ QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest&
             err.message = reply->errorString();
             err.userTag = r.userTag;
             emit requestFailed(err);
-            iface->reportException(std::runtime_error(err.message.toStdString()));
+            iface->reportException(std::make_exception_ptr(std::runtime_error(err.message.toStdString())));
             iface->reportFinished();
         });
 
