@@ -30,6 +30,7 @@ void ConversionService::initComponents() {
 
     // 原生转换器（始终创建，不依赖外部工具）
     m_native_md   = std::make_unique<NativeMarkdownConverter>();
+    m_native_docx = std::make_unique<NativeDocxConverter>();
     m_native_pdf  = std::make_unique<NativePdfConverter>();
 
     // 工具路径
@@ -49,6 +50,7 @@ void ConversionService::initComponents() {
 
     // 引擎 ← 原生降级组件
     m_engine->setNativeMarkdownConverter(m_native_md.get());
+    m_engine->setNativeDocxConverter(m_native_docx.get());
     m_engine->setNativePdfConverter(m_native_pdf.get());
 
     // 诊断 ← 工具查找器
@@ -191,6 +193,33 @@ TextExtractionResult ConversionService::extractText(const TextExtractionRequest&
         case Format::DOCX:
             if (m_pandoc && m_pandoc->isAvailable())
                 return m_pandoc->extractFromDocx(req.source_path);
+            if (m_native_docx) {
+                TaskInput ti;
+                ti.source_path   = req.source_path;
+                ti.source_format = Format::DOCX;
+                ti.target_format = Format::Markdown;
+                ti.output_path   = req.source_path + ".extracted.md";
+                ti.overwrite_existing = true;
+                TaskOutput to = m_native_docx->importFromDocx(ti);
+                TextExtractionResult r;
+                if (to.status == TaskStatus::Completed) {
+                    QFile f(to.product_path.value_or(ti.output_path));
+                    if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                        r.markdown_text = QString::fromUtf8(f.readAll());
+                        r.plain_text = r.markdown_text;
+                        MarkdownParser parser;
+                        r.blocks = parser.parse(r.markdown_text);
+                        r.spans  = parser.buildSpans(r.blocks);
+                        r.ok = true;
+                        f.close();
+                    }
+                    QFile::remove(ti.output_path);
+                } else {
+                    r.error      = to.error_message.value_or(QStringLiteral("DOCX 提取失败"));
+                    r.error_code = to.error_code;
+                }
+                return r;
+            }
             {
                 TextExtractionResult r;
                 r.error = QStringLiteral("Pandoc 不可用");
