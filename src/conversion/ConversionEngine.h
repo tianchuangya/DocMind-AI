@@ -6,7 +6,6 @@
 #include "PopplerExtractor.h"
 #include "ResourceManager.h"
 #include "native/NativeMarkdownConverter.h"
-#include "native/NativeDocxConverter.h"
 #include "native/NativePdfConverter.h"
 #include <QObject>
 #include <QMutex>
@@ -30,7 +29,6 @@ public:
 
     // 原生转换器（工具不可用时自动降级）
     void setNativeMarkdownConverter(NativeMarkdownConverter* c) { m_native_md  = c; }
-    void setNativeDocxConverter(NativeDocxConverter* c)         { m_native_docx = c; }
     void setNativePdfConverter(NativePdfConverter* c)           { m_native_pdf  = c; }
 
     /// 提交转换任务（异步，立即返回 handle）
@@ -76,7 +74,6 @@ private:
 
     // 原生降级
     NativeMarkdownConverter* m_native_md{nullptr};
-    NativeDocxConverter*     m_native_docx{nullptr};
     NativePdfConverter*      m_native_pdf{nullptr};
 
     QQueue<TaskHandle>         m_queue;

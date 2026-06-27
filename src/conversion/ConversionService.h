@@ -10,7 +10,6 @@
 #include "ResourceManager.h"
 #include "Diagnostics.h"
 #include "native/NativeMarkdownConverter.h"
-#include "native/NativeDocxConverter.h"
 #include "native/NativePdfConverter.h"
 #include <QObject>
 #include <memory>
@@ -94,7 +93,6 @@ private:
 
     // 原生转换器（不依赖外部工具，始终可用）
     std::unique_ptr<NativeMarkdownConverter> m_native_md;
-    std::unique_ptr<NativeDocxConverter>     m_native_docx;
     std::unique_ptr<NativePdfConverter>      m_native_pdf;
 
     size_t m_total{0}, m_completed{0}, m_failed{0};
