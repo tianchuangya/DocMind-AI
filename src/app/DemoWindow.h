@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QTextEdit>
+#include <QTextBrowser>
 #include <QListWidget>
 
 #include "storage/SettingsRepository.h"
@@ -23,7 +24,7 @@
 #include "knowledge/KnowledgeQueryService.h"
 #include "knowledge/ConversionEngineExtractionAdapter.h"
 
-namespace dmc::conversion { class ConversionEngine; }
+namespace dmc::conversion { class ConversionService; }
 
 namespace dmc::app {
 
@@ -34,6 +35,13 @@ public:
     ~DemoWindow() override;
 
 private slots:
+    void onNewDocument();
+    void onOpenDocument();
+    void onSaveDocument();
+    void onExportHtml();
+    void onImportEditorToKnowledge();
+    void onPolishSelection();
+    void onSummarizeDocument();
     void onSaveSettings();
     void onImportFile();
     void onClearKnowledge();
@@ -51,6 +59,11 @@ private:
     void refreshKnowledgeStatus();
     void log(const QString& msg);
     void refreshProvider();
+    QString editorTitle() const;
+    void updatePreview();
+    void runEditorAiAction(const QString& instruction,
+                           bool replaceSelection,
+                           const QString& label);
 
     // ─── 服务 ─────────────────────────────────────────────────────────────
     storage::SecureCredentialStore*       m_creds  = nullptr;
@@ -60,7 +73,9 @@ private:
     knowledge::KnowledgeIngestionService* m_ingest = nullptr;
     knowledge::KnowledgeQueryService*     m_query  = nullptr;
     knowledge::ConversionEngineExtractionAdapter* m_extractor = nullptr;
-    conversion::ConversionEngine*          m_engine = nullptr;
+    conversion::ConversionService*         m_conversion = nullptr;
+
+    QString m_currentFilePath;
 
     // ─── UI ────────────────────────────────────────────────────────────────
     QLineEdit* m_baseUrl    = nullptr;
@@ -74,6 +89,16 @@ private:
     QPushButton* m_clearBtn  = nullptr;
     QLabel*      m_kbStatus  = nullptr;
     QPlainTextEdit* m_log     = nullptr;
+
+    QTextEdit*   m_editor      = nullptr;
+    QTextBrowser* m_preview    = nullptr;
+    QPushButton* m_newDocBtn   = nullptr;
+    QPushButton* m_openDocBtn  = nullptr;
+    QPushButton* m_saveDocBtn  = nullptr;
+    QPushButton* m_exportHtmlBtn = nullptr;
+    QPushButton* m_importEditorBtn = nullptr;
+    QPushButton* m_polishBtn   = nullptr;
+    QPushButton* m_summaryBtn  = nullptr;
 
     QLineEdit*   m_question  = nullptr;
     QPushButton* m_askBtn     = nullptr;

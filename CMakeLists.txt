@@ -21,7 +21,19 @@ set(APP_SOURCES
     # 模块 A（仅 Logger，编译依赖）
     src/utils/Logger.cpp
     # 模块 B（转换服务）
+    src/conversion/Types.cpp
+    src/conversion/ProcessRunner.cpp
+    src/conversion/ToolRunner.cpp
+    src/conversion/MarkdownParser.cpp
+    src/conversion/PandocConverter.cpp
+    src/conversion/TectonicConverter.cpp
+    src/conversion/PopplerExtractor.cpp
+    src/conversion/ResourceManager.cpp
+    src/conversion/Diagnostics.cpp
+    src/conversion/ConversionEngine.cpp
     src/conversion/ConversionService.cpp
+    src/conversion/native/NativeMarkdownConverter.cpp
+    src/conversion/native/NativePdfConverter.cpp
     # 模块 C — AI
     src/ai/OpenAICompatibleProvider.cpp
     src/ai/WritingAssistant.cpp
@@ -39,7 +51,19 @@ set(APP_SOURCES
 set(APP_HEADERS
     src/app/DemoWindow.h
     src/utils/Logger.h
+    src/conversion/Types.h
+    src/conversion/ProcessRunner.h
+    src/conversion/ToolRunner.h
+    src/conversion/MarkdownParser.h
+    src/conversion/PandocConverter.h
+    src/conversion/TectonicConverter.h
+    src/conversion/PopplerExtractor.h
+    src/conversion/ResourceManager.h
+    src/conversion/Diagnostics.h
+    src/conversion/ConversionEngine.h
     src/conversion/ConversionService.h
+    src/conversion/native/NativeMarkdownConverter.h
+    src/conversion/native/NativePdfConverter.h
     src/ai/AIProvider.h
     src/ai/OpenAICompatibleProvider.h
     src/ai/WritingAssistant.h
@@ -73,6 +97,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Network
     Qt6::Sql
     Qt6::Concurrent
+    z
 )
 
 # ─── 平台依赖：SecureCredentialStore（首期仅加密文件回退，无需原生库） ──────

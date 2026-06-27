@@ -1,0 +1,34 @@
+// Windows resource file for DocMind AI
+// Version information only (no icon for now)
+
+#include <winver.h>
+
+// Version information
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION     1,0,0,0
+    PRODUCTVERSION  1,0,0,0
+    FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+    FILEFLAGS       0
+    FILEOS          VOS_NT_WINDOWS32
+    FILETYPE        VFT_APP
+    FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName",      "DocMind AI Team"
+            VALUE "FileDescription",  "DocMind AI - Markdown Editor"
+            VALUE "FileVersion",      "1.0.0.0"
+            VALUE "InternalName",     "DocMindAI"
+            VALUE "LegalCopyright",   "Copyright (C) 2026"
+            VALUE "OriginalFilename", "DocMindAI.exe"
+            VALUE "ProductName",      "DocMind AI"
+            VALUE "ProductVersion",   "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
