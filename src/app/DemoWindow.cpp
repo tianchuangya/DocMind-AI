@@ -103,13 +103,15 @@ void DemoWindow::setupUi() {
     // ── 设置区 ────────────────────────────────────────────────────────────
     auto* settingGroup = new QGroupBox(QStringLiteral("① AI 服务设置"), central);
     auto* form = new QFormLayout(settingGroup);
-    m_baseUrl   = new QLineEdit(QStringLiteral("https://api.openai.com"), settingGroup);
+    m_baseUrl   = new QLineEdit(QStringLiteral("https://dashscope.aliyuncs.com/compatible-mode"), settingGroup);
+    m_embeddingBaseUrl = new QLineEdit(QStringLiteral("https://dashscope.aliyuncs.com/compatible-mode"), settingGroup);
     m_apiKey    = new QLineEdit(settingGroup);
     m_apiKey->setEchoMode(QLineEdit::Password);
-    m_chatModel = new QLineEdit(QStringLiteral("gpt-4o-mini"), settingGroup);
-    m_embedModel= new QLineEdit(QStringLiteral("text-embedding-3-small"), settingGroup);
+    m_chatModel = new QLineEdit(QStringLiteral("qwen-plus"), settingGroup);
+    m_embedModel= new QLineEdit(QStringLiteral("text-embedding-v4"), settingGroup);
     m_saveBtn   = new QPushButton(QStringLiteral("保存设置"), settingGroup);
-    form->addRow(QStringLiteral("Base URL:"),    m_baseUrl);
+    form->addRow(QStringLiteral("文本 Base URL:"), m_baseUrl);
+    form->addRow(QStringLiteral("向量 Base URL:"), m_embeddingBaseUrl);
     form->addRow(QStringLiteral("API Key:"),     m_apiKey);
     form->addRow(QStringLiteral("聊天模型:"),    m_chatModel);
     form->addRow(QStringLiteral("嵌入模型:"),    m_embedModel);
@@ -180,6 +182,7 @@ void DemoWindow::loadSettings() {
         return;
     }
     m_baseUrl->setText(p->baseUrl);
+    m_embeddingBaseUrl->setText(p->embeddingBaseUrl.isEmpty() ? p->baseUrl : p->embeddingBaseUrl);
     m_chatModel->setText(p->chatModel);
     m_embedModel->setText(p->embeddingModel);
     // API Key 从凭据取回显示到输入框（仅占位，安全考虑可省略）
@@ -193,6 +196,7 @@ void DemoWindow::loadSettings() {
 void DemoWindow::refreshProvider() {
     ai::ProviderConfig cfg;
     cfg.baseUrl         = m_baseUrl->text().trimmed();
+    cfg.embeddingBaseUrl= m_embeddingBaseUrl->text().trimmed();
     cfg.apiKey          = m_apiKey->text().trimmed();
     cfg.chatModel       = m_chatModel->text().trimmed();
     cfg.embeddingModel  = m_embedModel->text().trimmed();
@@ -204,6 +208,7 @@ void DemoWindow::onSaveSettings() {
     storage::ProviderSettings s;
     s.displayName     = QStringLiteral("OpenAI Compatible");
     s.baseUrl         = m_baseUrl->text().trimmed();
+    s.embeddingBaseUrl= m_embeddingBaseUrl->text().trimmed();
     s.chatModel       = m_chatModel->text().trimmed();
     s.embeddingModel  = m_embedModel->text().trimmed();
     s.isDefault       = true;

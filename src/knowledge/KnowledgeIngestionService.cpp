@@ -178,23 +178,28 @@ QFuture<IngestionResult> KnowledgeIngestionService::ingest(const IngestionReques
         if (provider && !chunkIds.isEmpty()) {
             // 把每个 chunk 文本拼到 embedding 请求；首期一次性批量
             ai::EmbeddingRequest ereq;
+            ereq.timeoutMs = 15000;
             ereq.inputs.reserve(chunks.size());
             for (const Chunk& c : chunks) {
                 ereq.inputs.append(c.text);
             }
             // 同步等待 future（已在 worker 线程）
-            QFuture<ai::EmbeddingResult> ef = provider->embed(ereq);
-            ai::EmbeddingResult eres = ef.result();
+            try {
+                QFuture<ai::EmbeddingResult> ef = provider->embed(ereq);
+                ai::EmbeddingResult eres = ef.result();
 
-            if (eres.vectors.size() == chunks.size()) {
-                int dim = eres.vectors.isEmpty() ? 0 : eres.vectors.first().size();
-                for (int i = 0; i < chunkIds.size(); ++i) {
-                    repo->setEmbedding(chunkIds[i], eres.vectors[i], dim,
-                                        ereq.model.isEmpty() ? QStringLiteral("default") : ereq.model);
+                if (eres.vectors.size() == chunks.size()) {
+                    int dim = eres.vectors.isEmpty() ? 0 : eres.vectors.first().size();
+                    for (int i = 0; i < chunkIds.size(); ++i) {
+                        repo->setEmbedding(chunkIds[i], eres.vectors[i], dim,
+                                            ereq.model.isEmpty() ? QStringLiteral("default") : ereq.model);
+                    }
+                } else {
+                    LOG_WARN("Ingestion", QString("Embedding count mismatch: req=%1 got=%2")
+                                            .arg(chunks.size()).arg(eres.vectors.size()));
                 }
-            } else {
-                LOG_WARN("Ingestion", QString("Embedding count mismatch: req=%1 got=%2")
-                                        .arg(chunks.size()).arg(eres.vectors.size()));
+            } catch (const std::exception& e) {
+                LOG_WARN("Ingestion", QString("Embedding skipped: %1").arg(QString::fromUtf8(e.what())));
             }
         }
 

@@ -64,6 +64,7 @@ private:
 
     // ─── UI ────────────────────────────────────────────────────────────────
     QLineEdit* m_baseUrl    = nullptr;
+    QLineEdit* m_embeddingBaseUrl = nullptr;
     QLineEdit* m_apiKey     = nullptr;
     QLineEdit* m_chatModel  = nullptr;
     QLineEdit* m_embedModel= nullptr;

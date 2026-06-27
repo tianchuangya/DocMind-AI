@@ -95,7 +95,17 @@ QFuture<RetrievalResult> KnowledgeQueryService::retrieve(const QString& query,
             w->deleteLater();
             if (!self) { iface->reportFinished(); return; }
 
-            ai::EmbeddingResult eres = w->result();
+            ai::EmbeddingResult eres;
+            try {
+                eres = w->result();
+            } catch (const std::exception& e) {
+                LOG_WARN("KnowledgeQuery", QString("Embedding query failed, fallback to keyword: %1")
+                                          .arg(QString::fromUtf8(e.what())));
+                RetrievalResult r = self->retrieveByKeyword(query, opts.topK);
+                iface->reportResult(r);
+                iface->reportFinished();
+                return;
+            }
             if (eres.vectors.isEmpty()) {
                 // 嵌入失败 -> 关键词降级
                 RetrievalResult r = self->retrieveByKeyword(query, opts.topK);

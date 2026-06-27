@@ -12,7 +12,7 @@
 namespace dmc::storage {
 
 namespace {
-constexpr int kLatestVersion = 1;
+constexpr int kLatestVersion = 2;
 }
 
 DbMigrator::DbMigrator(const QSqlDatabase& db, QObject* parent)
@@ -50,7 +50,7 @@ bool DbMigrator::migrate(QString* error) {
     while (v < kLatestVersion) {
         bool ok = false;
         if (v + 1 == 1) ok = applyV1(error);
-        // 后续版本在此追加 else if 分支
+        else if (v + 1 == 2) ok = applyV2(error);
         if (!ok) return false;
         ++v;
     }
@@ -76,6 +76,7 @@ bool DbMigrator::applyV1(QString* error) {
             "  id                INTEGER PRIMARY KEY AUTOINCREMENT,"
             "  display_name      TEXT NOT NULL,"
             "  base_url          TEXT NOT NULL,"
+            "  embedding_base_url TEXT,"
             "  api_key_ref       TEXT,"
             "  chat_model        TEXT,"
             "  embedding_model   TEXT,"
@@ -86,6 +87,16 @@ bool DbMigrator::applyV1(QString* error) {
             "  updated_at        TEXT NOT NULL)"))) {
         if (error) *error = q.lastError().text();
         return false;
+    }
+
+    // 兼容已经创建过的 v1 数据库：补充向量服务独立 Base URL。
+    if (!q.exec(QStringLiteral(
+            "ALTER TABLE ai_providers ADD COLUMN embedding_base_url TEXT"))) {
+        const QString msg = q.lastError().text().toLower();
+        if (!msg.contains(QStringLiteral("duplicate column"))) {
+            if (error) *error = q.lastError().text();
+            return false;
+        }
     }
 
     // 知识库文档
@@ -197,7 +208,7 @@ bool DbMigrator::applyV1(QString* error) {
     QSqlQuery vq(m_db);
     vq.prepare(QStringLiteral(
         "INSERT INTO schema_version(version, applied_at) VALUES (?, ?)"));
-    vq.addBindValue(kLatestVersion);
+    vq.addBindValue(1);
     vq.addBindValue(QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
     if (!vq.exec()) {
         if (error) *error = vq.lastError().text();
@@ -207,8 +218,34 @@ bool DbMigrator::applyV1(QString* error) {
 }
 
 bool DbMigrator::applyV2(QString* error) {
-    // 预留：例如增加 ANN 向量索引表
-    Q_UNUSED(error);
+    QSqlQuery q(m_db);
+    if (!q.exec(QStringLiteral(
+            "ALTER TABLE ai_providers ADD COLUMN embedding_base_url TEXT"))) {
+        const QString msg = q.lastError().text().toLower();
+        if (!msg.contains(QStringLiteral("duplicate column"))) {
+            if (error) *error = q.lastError().text();
+            return false;
+        }
+    }
+
+    QSqlQuery fill(m_db);
+    if (!fill.exec(QStringLiteral(
+            "UPDATE ai_providers "
+            "SET embedding_base_url = base_url "
+            "WHERE embedding_base_url IS NULL OR embedding_base_url = ''"))) {
+        if (error) *error = fill.lastError().text();
+        return false;
+    }
+
+    QSqlQuery vq(m_db);
+    vq.prepare(QStringLiteral(
+        "INSERT OR IGNORE INTO schema_version(version, applied_at) VALUES (?, ?)"));
+    vq.addBindValue(2);
+    vq.addBindValue(QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
+    if (!vq.exec()) {
+        if (error) *error = vq.lastError().text();
+        return false;
+    }
     return true;
 }
 

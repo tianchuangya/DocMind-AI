@@ -108,8 +108,11 @@ OpenAICompatibleProvider::~OpenAICompatibleProvider() = default;
 void OpenAICompatibleProvider::applyConfig(const ProviderConfig& cfg) {
     m_config = cfg;
     LOG_INFO("OpenAICompatibleProvider",
-             QString("Configured base=%1 chat=%2 emb=%3")
-                 .arg(cfg.baseUrl, cfg.chatModel, cfg.embeddingModel));
+             QString("Configured chatBase=%1 embeddingBase=%2 chat=%3 emb=%4")
+                 .arg(cfg.baseUrl,
+                      cfg.embeddingBaseUrl.isEmpty() ? cfg.baseUrl : cfg.embeddingBaseUrl,
+                      cfg.chatModel,
+                      cfg.embeddingModel));
 }
 
 QString OpenAICompatibleProvider::chatUrl() const {
@@ -117,7 +120,10 @@ QString OpenAICompatibleProvider::chatUrl() const {
 }
 
 QString OpenAICompatibleProvider::embeddingsUrl() const {
-    return normalizeBaseUrl(m_config.baseUrl) + QStringLiteral("/embeddings");
+    const QString base = m_config.embeddingBaseUrl.trimmed().isEmpty()
+        ? m_config.baseUrl
+        : m_config.embeddingBaseUrl;
+    return normalizeBaseUrl(base) + QStringLiteral("/embeddings");
 }
 
 AIErrorInfo OpenAICompatibleProvider::mapError(int httpStatus, const QByteArray& body,
@@ -162,6 +168,13 @@ std::optional<QJsonObject> OpenAICompatibleProvider::parseSseLine(const QByteArr
 QFuture<ChatResult> OpenAICompatibleProvider::chat(const ChatRequest& req) {
     auto iface = std::make_shared<QFutureInterface<ChatResult>>();
     iface->reportStarted();
+
+    if (m_config.apiKey.trimmed().isEmpty()) {
+        iface->reportException(std::make_exception_ptr(
+            std::runtime_error("API Key 未配置，请先在右侧 AI 服务设置中保存 API Key")));
+        iface->reportFinished();
+        return iface->future();
+    }
 
     ChatRequest r = req;
     r.stream = false;
@@ -245,6 +258,13 @@ QFuture<ChatResult> OpenAICompatibleProvider::chat(const ChatRequest& req) {
 QFuture<ChatResult> OpenAICompatibleProvider::chatStream(const ChatRequest& req) {
     auto iface = std::make_shared<QFutureInterface<ChatResult>>();
     iface->reportStarted();
+
+    if (m_config.apiKey.trimmed().isEmpty()) {
+        iface->reportException(std::make_exception_ptr(
+            std::runtime_error("API Key 未配置，请先在右侧 AI 服务设置中保存 API Key")));
+        iface->reportFinished();
+        return iface->future();
+    }
 
     ChatRequest r = req;
     r.stream = true;
@@ -343,6 +363,12 @@ QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest&
     auto iface = std::make_shared<QFutureInterface<EmbeddingResult>>();
     iface->reportStarted();
 
+    if (m_config.apiKey.trimmed().isEmpty()) {
+        iface->reportResult(EmbeddingResult{});
+        iface->reportFinished();
+        return iface->future();
+    }
+
     EmbeddingRequest r = req;
     if (r.model.isEmpty()) r.model = m_config.embeddingModel;
 
@@ -351,9 +377,27 @@ QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest&
     nr.setRawHeader("Authorization", QStringLiteral("Bearer %1").arg(m_config.apiKey).toUtf8());
 
     QPointer<QNetworkReply> reply = m_nam->post(nr, buildEmbeddingBody(r));
+    int timeout = r.timeoutMs.value_or(m_config.requestTimeoutMs);
+    auto timer = new QTimer(reply.data());
+    timer->setInterval(timeout);
+    timer->setSingleShot(true);
+
+    QObject::connect(timer, &QTimer::timeout, reply.data(), [this, reply, iface, r, timeout]() {
+        if (!reply) return;
+        AIErrorInfo err;
+        err.code = AIError::Timeout;
+        err.message = QStringLiteral("Embedding request timed out after %1 ms").arg(timeout);
+        err.userTag = r.userTag;
+        LOG_WARN("OpenAICompatibleProvider", err.message);
+        reply->abort();
+        emit requestFailed(err);
+        iface->reportException(std::make_exception_ptr(std::runtime_error(err.message.toStdString())));
+        iface->reportFinished();
+    });
 
     QObject::connect(reply.data(), &QNetworkReply::finished, reply.data(),
-        [this, reply, iface, r]() {
+        [this, reply, iface, r, timer]() {
+            timer->stop();
             if (!reply) { iface->reportFinished(); return; }
             reply->deleteLater();
             int http = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -405,6 +449,7 @@ QFuture<EmbeddingResult> OpenAICompatibleProvider::embed(const EmbeddingRequest&
             iface->reportFinished();
         });
 
+    timer->start();
     return iface->future();
 }
 
