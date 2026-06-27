@@ -1,5 +1,5 @@
 // DocMind AI — ConversionEngineExtractionAdapter
-// 把模块 B 的 dmc::conversion::ConversionEngine 同步 extractText 适配到模块 C 的 ExtractionAdapter。
+// 把模块 B 的 dmc::conversion::ConversionService 同步 extractText 适配到模块 C 的 ExtractionAdapter。
 //
 // 设计：直接调用 B 的同步 extractText（不阻塞 UI 由 KnowledgeIngestionService 负责
 //      通过 QtConcurrent 转入 worker 线程）。这一层只做类型转换，无 IO 重负。
@@ -14,14 +14,14 @@ namespace dmc::knowledge {
 
 class ConversionEngineExtractionAdapter : public ExtractionAdapter {
 public:
-    explicit ConversionEngineExtractionAdapter(conversion::ConversionEngine* engine)
-        : m_engine(engine) {}
+    explicit ConversionEngineExtractionAdapter(conversion::ConversionService* service)
+        : m_service(service) {}
 
     ExtractionOutput extract(const ExtractionInput& in) override {
         ExtractionOutput out;
-        if (!m_engine) {
+        if (!m_service) {
             out.ok = false;
-            out.errorMessage = QStringLiteral("ConversionEngine not available");
+            out.errorMessage = QStringLiteral("ConversionService not available");
             return out;
         }
 
@@ -32,7 +32,7 @@ public:
         req.prefer_structure= in.preferStructure;
         req.layout_mode     = conversion::TextExtractionRequest::Raw;
 
-        conversion::TextExtractionResult r = m_engine->extractText(req);
+        conversion::TextExtractionResult r = m_service->extractText(req);
         out.ok             = r.ok;
         out.markdownText   = r.markdown_text;
         out.plainText      = r.plain_text;
@@ -72,7 +72,7 @@ public:
     }
 
 private:
-    conversion::ConversionEngine* m_engine;
+    conversion::ConversionService* m_service;
 };
 
 } // namespace dmc::knowledge

@@ -5,6 +5,7 @@
 
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSqlRecord>
 #include <QDateTime>
 #include <QVariant>
 #include <atomic>
@@ -18,7 +19,10 @@ ProviderSettings hydrate(const QSqlQuery& q) {
     s.id              = q.value(QStringLiteral("id")).toLongLong();
     s.displayName     = q.value(QStringLiteral("display_name")).toString();
     s.baseUrl         = q.value(QStringLiteral("base_url")).toString();
-    s.embeddingBaseUrl= q.value(QStringLiteral("embedding_base_url")).toString();
+    const int embeddingBaseUrlCol = q.record().indexOf(QStringLiteral("embedding_base_url"));
+    s.embeddingBaseUrl= embeddingBaseUrlCol >= 0
+        ? q.value(embeddingBaseUrlCol).toString()
+        : s.baseUrl;
     s.apiKeyRef       = q.value(QStringLiteral("api_key_ref")).toString();
     s.chatModel       = q.value(QStringLiteral("chat_model")).toString();
     s.embeddingModel  = q.value(QStringLiteral("embedding_model")).toString();

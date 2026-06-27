@@ -63,11 +63,11 @@ DemoWindow::DemoWindow(QWidget* parent)
         log(QStringLiteral("Knowledge DB 打开失败: ") + err);
     }
 
-    // 5. 模块 B 转换引擎
-    m_engine = new conversion::ConversionEngine(this);
+    // 5. 模块 B 转换服务
+    m_conversion = new conversion::ConversionService(this);
 
     // 6. 适配器
-    m_extractor = new knowledge::ConversionEngineExtractionAdapter(m_engine);
+    m_extractor = new knowledge::ConversionEngineExtractionAdapter(m_conversion);
 
     // 7. 入库与查询服务
     m_ingest = new knowledge::KnowledgeIngestionService(m_repo, m_provider, m_extractor, this);

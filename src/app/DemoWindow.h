@@ -24,7 +24,7 @@
 #include "knowledge/KnowledgeQueryService.h"
 #include "knowledge/ConversionEngineExtractionAdapter.h"
 
-namespace dmc::conversion { class ConversionEngine; }
+namespace dmc::conversion { class ConversionService; }
 
 namespace dmc::app {
 
@@ -73,7 +73,7 @@ private:
     knowledge::KnowledgeIngestionService* m_ingest = nullptr;
     knowledge::KnowledgeQueryService*     m_query  = nullptr;
     knowledge::ConversionEngineExtractionAdapter* m_extractor = nullptr;
-    conversion::ConversionEngine*          m_engine = nullptr;
+    conversion::ConversionService*         m_conversion = nullptr;
 
     QString m_currentFilePath;
 
