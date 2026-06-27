@@ -1,37 +1,45 @@
-# Build directory
+# Build artifacts
 build/
 .build/
 .deps/
-
-# IDE
-.vscode/
-.idea/
-*.user
-*.swp
-
-# Logs
-*.log
-debug.log
-
-# Compiled objects
-*.exe
-*.dll
-*.obj
-*.o
-*.a
-*.lib
-
-# CMake
+out/
+cmake-build-*/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
+*.o
+*.obj
+*.exe
+*.dll
+*.a
+*.lib
 
-# Qt
+# IDE / 编辑器
+.vscode/
+.idea/
+*.user
+*.user.*
+*.kdev4
+*.swp
+
+# Qt generated files
 moc_*.cpp
 qrc_*.cpp
 ui_*.h
 
-# OS files
-Thumbs.db
+# macOS / Windows
 .DS_Store
+Thumbs.db
+
+# 日志和运行时数据
+debug.log
+*.log
+credentials.dat
+docmind.db
+*.db-journal
+
+# 打包产物
+*.dmg
+*.pkg
+*.app
