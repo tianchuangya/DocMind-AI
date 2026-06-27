@@ -9,7 +9,7 @@ set(CMAKE_AUTOUIC ON)
 
 # ─── Qt6 ─────────────────────────────────────────────────────────────────────
 find_package(Qt6 6.5 REQUIRED COMPONENTS
-    Core Gui Widgets Network PrintSupport
+    Core Gui Widgets Network PrintSupport Sql Concurrent
 )
 
 # ─── 源码收集 ─────────────────────────────────────────────────────────────────
@@ -30,6 +30,22 @@ set(APP_SOURCES
     src/widgets/TabManager.cpp
     src/widgets/ThemeManager.cpp
     src/utils/Logger.cpp
+    # Module B — conversion service
+    src/conversion/Types.cpp
+    src/conversion/ProcessRunner.cpp
+    src/conversion/ToolRunner.cpp
+    src/conversion/MarkdownParser.cpp
+    src/conversion/PandocConverter.cpp
+    src/conversion/TectonicConverter.cpp
+    src/conversion/PopplerExtractor.cpp
+    src/conversion/ResourceManager.cpp
+    src/conversion/Diagnostics.cpp
+    src/conversion/ConversionEngine.cpp
+    src/conversion/ConversionService.cpp
+    src/conversion/native/NativeMarkdownConverter.cpp
+    src/conversion/native/NativeDocxConverter.cpp
+    src/conversion/native/NativePdfConverter.cpp
+    src/conversion/native/NativeConversionService.cpp
 )
 
 set(APP_HEADERS
@@ -48,6 +64,22 @@ set(APP_HEADERS
     src/widgets/TabManager.h
     src/widgets/ThemeManager.h
     src/utils/Logger.h
+    # Module B — conversion service
+    src/conversion/Types.h
+    src/conversion/ProcessRunner.h
+    src/conversion/ToolRunner.h
+    src/conversion/MarkdownParser.h
+    src/conversion/PandocConverter.h
+    src/conversion/TectonicConverter.h
+    src/conversion/PopplerExtractor.h
+    src/conversion/ResourceManager.h
+    src/conversion/Diagnostics.h
+    src/conversion/ConversionEngine.h
+    src/conversion/ConversionService.h
+    src/conversion/native/NativeMarkdownConverter.h
+    src/conversion/native/NativeDocxConverter.h
+    src/conversion/native/NativePdfConverter.h
+    src/conversion/native/NativeConversionService.h
 )
 
 set(APP_RESOURCES
@@ -79,6 +111,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Widgets
     Qt6::Network
     Qt6::PrintSupport
+    Qt6::Sql
+    Qt6::Concurrent
+    z
 )
 
 # ─── 编译选项 ─────────────────────────────────────────────────────────────────
