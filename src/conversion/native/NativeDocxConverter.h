@@ -51,6 +51,9 @@ private:
     // 生成 word/_rels/document.xml.rels
     QByteArray generateWordRels(const DocxDocument& doc) const;
 
+    // 生成 word/styles.xml
+    QByteArray generateStylesXml() const;
+
     // 生成 word/document.xml
     QByteArray generateDocumentXml(const DocxDocument& doc) const;
 
