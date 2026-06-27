@@ -4,9 +4,16 @@ build/
 .deps/
 out/
 cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
 *.o
 *.obj
 *.exe
+*.dll
+*.a
+*.lib
 
 # IDE / 编辑器
 .vscode/
@@ -16,8 +23,14 @@ cmake-build-*/
 *.kdev4
 *.swp
 
-# macOS
+# Qt generated files
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# macOS / Windows
 .DS_Store
+Thumbs.db
 
 # 日志和运行时数据
 debug.log
