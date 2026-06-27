@@ -43,7 +43,9 @@ set(APP_SOURCES
     src/conversion/ConversionEngine.cpp
     src/conversion/ConversionService.cpp
     src/conversion/native/NativeMarkdownConverter.cpp
+    src/conversion/native/NativeDocxConverter.cpp
     src/conversion/native/NativePdfConverter.cpp
+    src/conversion/native/NativeConversionService.cpp
 )
 
 set(APP_HEADERS
@@ -75,7 +77,9 @@ set(APP_HEADERS
     src/conversion/ConversionEngine.h
     src/conversion/ConversionService.h
     src/conversion/native/NativeMarkdownConverter.h
+    src/conversion/native/NativeDocxConverter.h
     src/conversion/native/NativePdfConverter.h
+    src/conversion/native/NativeConversionService.h
 )
 
 set(APP_RESOURCES

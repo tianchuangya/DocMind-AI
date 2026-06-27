@@ -5,11 +5,61 @@
 #include <QRegularExpression>
 #include <QBuffer>
 #include <QElapsedTimer>
-#include <QtCore/private/qzipreader_p.h>
-#include <QtCore/private/qzipwriter_p.h>
+#include <QProcess>
+#include <QTemporaryDir>
 
 namespace dmc {
 namespace conversion {
+
+namespace {
+
+bool writePackageFile(const QString& root, const QString& relativePath, const QByteArray& data) {
+    const QString path = QDir(root).filePath(relativePath);
+    QDir().mkpath(QFileInfo(path).absolutePath());
+
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        return false;
+    }
+    return file.write(data) == data.size();
+}
+
+bool runProcess(const QString& program,
+                const QStringList& arguments,
+                const QString& workingDirectory,
+                QString* error) {
+    QProcess process;
+    if (!workingDirectory.isEmpty()) {
+        process.setWorkingDirectory(workingDirectory);
+    }
+    process.start(program, arguments);
+    if (!process.waitForStarted()) {
+        if (error) {
+            *error = QStringLiteral("无法启动 %1").arg(program);
+        }
+        return false;
+    }
+    if (!process.waitForFinished(30000)) {
+        process.kill();
+        process.waitForFinished();
+        if (error) {
+            *error = QStringLiteral("%1 执行超时").arg(program);
+        }
+        return false;
+    }
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+        if (error) {
+            const QString stderrText = QString::fromLocal8Bit(process.readAllStandardError()).trimmed();
+            *error = stderrText.isEmpty()
+                ? QStringLiteral("%1 执行失败，退出码 %2").arg(program).arg(process.exitCode())
+                : stderrText;
+        }
+        return false;
+    }
+    return true;
+}
+
+} // namespace
 
 NativeDocxConverter::NativeDocxConverter(QObject* parent) : QObject(parent) {}
 NativeDocxConverter::~NativeDocxConverter() {}
@@ -92,53 +142,84 @@ TaskOutput NativeDocxConverter::importFromDocx(const TaskInput& input) {
 
 bool NativeDocxConverter::buildDocxFile(const QString& output_path,
                                         const DocxDocument& doc) {
-    QZipWriter writer(output_path);
-    if (!writer.exists()) return false;
+    QTemporaryDir temp_dir;
+    if (!temp_dir.isValid()) {
+        return false;
+    }
 
-    writer.addFile("[Content_Types].xml",        generateContentTypes(doc));
-    writer.addFile("_rels/.rels",                generateRels());
-    writer.addFile("word/_rels/document.xml.rels", generateWordRels(doc));
-    writer.addFile("word/document.xml",          generateDocumentXml(doc));
+    const QString root = temp_dir.path();
+    if (!writePackageFile(root, "[Content_Types].xml", generateContentTypes(doc)) ||
+        !writePackageFile(root, "_rels/.rels", generateRels()) ||
+        !writePackageFile(root, "word/_rels/document.xml.rels", generateWordRels(doc)) ||
+        !writePackageFile(root, "word/styles.xml", generateStylesXml()) ||
+        !writePackageFile(root, "word/document.xml", generateDocumentXml(doc))) {
+        return false;
+    }
 
-    for (auto it = doc.images.cbegin(); it != doc.images.cend(); ++it)
-        writer.addFile("word/media/" + it.key(), it.value());
+    for (auto it = doc.images.cbegin(); it != doc.images.cend(); ++it) {
+        if (!writePackageFile(root, "word/media/" + it.key(), it.value())) {
+            return false;
+        }
+    }
 
-    writer.close();
-    return true;
+    QDir().mkpath(QFileInfo(output_path).absolutePath());
+    QFile::remove(output_path);
+
+    QString error;
+    return runProcess(QStringLiteral("zip"),
+                      QStringList{QStringLiteral("-qr"), output_path, QStringLiteral(".")},
+                      root,
+                      &error);
 }
 
 NativeDocxConverter::DocxDocument
 NativeDocxConverter::parseDocxFile(const QString& input_path, QString& error) {
     DocxDocument doc;
-    QZipReader reader(input_path);
 
-    if (!reader.exists()) {
+    if (!QFileInfo::exists(input_path)) {
         error = QStringLiteral("文件不存在或无法访问");
         return doc;
     }
-    if (reader.status() != QZipReader::NoError) {
-        error = QStringLiteral("无效的 DOCX 文件");
+
+    QTemporaryDir temp_dir;
+    if (!temp_dir.isValid()) {
+        error = QStringLiteral("无法创建临时目录");
         return doc;
     }
 
-    // Qt 6 API: fileData() 代替 readFile()
-    QByteArray doc_xml = reader.fileData("word/document.xml");
+    if (!runProcess(QStringLiteral("unzip"),
+                    QStringList{QStringLiteral("-qq"), QStringLiteral("-o"), input_path,
+                                QStringLiteral("-d"), temp_dir.path()},
+                    QString(),
+                    &error)) {
+        if (error.isEmpty()) {
+            error = QStringLiteral("无效的 DOCX 文件");
+        }
+        return doc;
+    }
+
+    QFile document_file(QDir(temp_dir.path()).filePath("word/document.xml"));
+    if (!document_file.open(QIODevice::ReadOnly)) {
+        error = QStringLiteral("DOCX 文件中缺少 document.xml");
+        return doc;
+    }
+
+    QByteArray doc_xml = document_file.readAll();
     if (doc_xml.isEmpty()) {
         error = QStringLiteral("DOCX 文件中缺少 document.xml");
         return doc;
     }
     doc.content_xml = QString::fromUtf8(doc_xml);
 
-    // 遍历文件列表查找图片
-    auto infos = reader.fileInfoList();
-    for (const auto& fi : infos) {
-        if (fi.filePath.startsWith("word/media/")) {
-            QString name = fi.filePath.mid(13);
-            doc.images[name] = reader.fileData(fi.filePath);
+    QDir media_dir(QDir(temp_dir.path()).filePath("word/media"));
+    const QFileInfoList media_files = media_dir.entryInfoList(QDir::Files);
+    for (const QFileInfo& media : media_files) {
+        QFile file(media.absoluteFilePath());
+        if (file.open(QIODevice::ReadOnly)) {
+            doc.images[media.fileName()] = file.readAll();
         }
     }
 
-    reader.close();
     return doc;
 }
 
@@ -260,6 +341,20 @@ QByteArray NativeDocxConverter::generateWordRels(const DocxDocument& doc) const 
     }
 
     xml += "</Relationships>";
+    return xml.toUtf8();
+}
+
+QByteArray NativeDocxConverter::generateStylesXml() const {
+    QString xml;
+    xml += "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n";
+    xml += "<w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">\n";
+    xml += "  <w:style w:type=\"paragraph\" w:styleId=\"Heading1\"><w:name w:val=\"heading 1\"/><w:basedOn w:val=\"Normal\"/><w:qFormat/></w:style>\n";
+    xml += "  <w:style w:type=\"paragraph\" w:styleId=\"Heading2\"><w:name w:val=\"heading 2\"/><w:basedOn w:val=\"Normal\"/><w:qFormat/></w:style>\n";
+    xml += "  <w:style w:type=\"paragraph\" w:styleId=\"Heading3\"><w:name w:val=\"heading 3\"/><w:basedOn w:val=\"Normal\"/><w:qFormat/></w:style>\n";
+    xml += "  <w:style w:type=\"paragraph\" w:styleId=\"ListBullet\"><w:name w:val=\"List Bullet\"/><w:basedOn w:val=\"Normal\"/></w:style>\n";
+    xml += "  <w:style w:type=\"paragraph\" w:styleId=\"Quote\"><w:name w:val=\"Quote\"/><w:basedOn w:val=\"Normal\"/></w:style>\n";
+    xml += "  <w:style w:type=\"paragraph\" w:styleId=\"Code\"><w:name w:val=\"Code\"/><w:basedOn w:val=\"Normal\"/></w:style>\n";
+    xml += "</w:styles>";
     return xml.toUtf8();
 }
 

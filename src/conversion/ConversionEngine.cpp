@@ -152,11 +152,19 @@ TaskOutput ConversionEngine::executeTask(const TaskInput& input) {
             // 优先 Pandoc
             if (m_pandoc && m_pandoc->isAvailable())
                 return m_pandoc->convert(input);
+            if (m_native_docx) {
+                emit taskLog(0, QStringLiteral("Pandoc 不可用，使用原生 DOCX 转换"));
+                return m_native_docx->exportToDocx(input);
+            }
             break;
         }
         case ConversionDirection::DOCX_to_MD: {
             if (m_pandoc && m_pandoc->isAvailable())
                 return m_pandoc->convert(input);
+            if (m_native_docx) {
+                emit taskLog(0, QStringLiteral("Pandoc 不可用，使用原生 DOCX 转换"));
+                return m_native_docx->importFromDocx(input);
+            }
             break;
         }
 
