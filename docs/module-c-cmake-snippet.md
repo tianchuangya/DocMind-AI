@@ -1,5 +1,7 @@
 # 模块 C — CMake 集成片段
 
+> 归档说明：本文是模块 C 合并前的 CMake 对接草稿。当前 `main` 分支的根 `CMakeLists.txt` 已经接入模块 C 的实际源文件、Qt Sql 和 Qt Concurrent；正式构建配置请以根目录 `CMakeLists.txt` 为准。
+
 合并到主分支时,把以下改动贴进根 `CMakeLists.txt`。
 
 ## 1. find_package 增加 Sql 与 Concurrent

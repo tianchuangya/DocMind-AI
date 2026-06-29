@@ -6,10 +6,11 @@
    - 新建、打开、编辑 Markdown / 文本文档
    - 实时 Markdown 预览
    - 保存为 Markdown
-   - 导出为 HTML
+   - 通过导出菜单导出 HTML / DOCX / PDF
 
 2. 文档导入与知识库
    - 从文件导入 Markdown / DOCX / PDF / HTML 到知识库
+   - DOCX / PDF / HTML 先经过模块 B 提取文本，再交给模块 C 入库
    - 将当前编辑器内容直接加入知识库
    - 支持清空知识库
    - 没有 API Key 时会退化为关键词检索，不影响导入和演示
@@ -47,7 +48,7 @@ arch -x86_64 .deps/venv/bin/cmake --build .build/course-design-demo-qt683-x64-sd
 ## 演示建议
 
 1. 打开程序后，在左侧编辑器输入一段 Markdown。
-2. 点击“导出 HTML”，展示导出能力。
+2. 点击导出菜单，展示 HTML / DOCX / PDF 导出能力。
 3. 点击“加入知识库”，再在右侧问答框提问。
 4. 如果配置了 API Key，可以展示 AI 润色、AI 摘要和知识库问答。
 5. 如果没有 API Key，可以展示编辑器、导入导出、关键词检索和 API Key 未配置提示。
