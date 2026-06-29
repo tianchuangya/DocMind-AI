@@ -184,17 +184,6 @@ arch -x86_64 .deps/venv/bin/cmake --build .build/feat-initial-module-c-qt683-x64
 .build/feat-initial-module-c-qt683-x64-sdk154/DocMindAI
 ```
 
-## 课程设计演示重点
-
-答辩时模块 C 可以这样讲：
-
-1. 打开设置，说明 AI Provider 支持 OpenAI-compatible 接口。
-2. 展示文本润色或摘要，说明 `WritingAssistant` 调用聊天模型。
-3. 导入文档或将当前编辑器内容加入知识库。
-4. 说明入库经过“提取文本 → 分块 → 向量化 → SQLite/FTS5 存储”。
-5. 在知识库问答框提问，展示检索结果、AI 回答和来源。
-6. 说明没有 API Key 时系统会降级为关键词检索，保证基础功能可用。
-
 ## 当前边界
 
 - 当前版本优先保证课程设计展示闭环，不追求商业级知识库性能；
