@@ -9,6 +9,7 @@
 #include <QGroupBox>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QMenu>
 #include <QStandardPaths>
 #include <QDir>
 #include <QFileInfo>
@@ -23,6 +24,7 @@
 #include <QSaveFile>
 #include <QTextStream>
 #include <QTextCursor>
+#include <QToolButton>
 #include <QFutureWatcher>
 
 namespace dmc::app {
@@ -119,12 +121,19 @@ void DemoWindow::setupUi() {
     m_newDocBtn = new QPushButton(QStringLiteral("新建"), editorGroup);
     m_openDocBtn = new QPushButton(QStringLiteral("打开"), editorGroup);
     m_saveDocBtn = new QPushButton(QStringLiteral("保存 MD"), editorGroup);
-    m_exportHtmlBtn = new QPushButton(QStringLiteral("导出 HTML"), editorGroup);
+    m_exportBtn = new QToolButton(editorGroup);
+    m_exportBtn->setText(QStringLiteral("导出"));
+    m_exportBtn->setPopupMode(QToolButton::InstantPopup);
+    auto* exportMenu = new QMenu(m_exportBtn);
+    QAction* exportHtmlAction = exportMenu->addAction(QStringLiteral("导出 HTML"));
+    QAction* exportDocxAction = exportMenu->addAction(QStringLiteral("导出 DOCX"));
+    QAction* exportPdfAction  = exportMenu->addAction(QStringLiteral("导出 PDF"));
+    m_exportBtn->setMenu(exportMenu);
     m_importEditorBtn = new QPushButton(QStringLiteral("加入知识库"), editorGroup);
     editorBtns->addWidget(m_newDocBtn);
     editorBtns->addWidget(m_openDocBtn);
     editorBtns->addWidget(m_saveDocBtn);
-    editorBtns->addWidget(m_exportHtmlBtn);
+    editorBtns->addWidget(m_exportBtn);
     editorBtns->addWidget(m_importEditorBtn);
     editorBtns->addStretch();
     editorLayout->addLayout(editorBtns);
@@ -153,7 +162,9 @@ void DemoWindow::setupUi() {
     connect(m_newDocBtn, &QPushButton::clicked, this, &DemoWindow::onNewDocument);
     connect(m_openDocBtn, &QPushButton::clicked, this, &DemoWindow::onOpenDocument);
     connect(m_saveDocBtn, &QPushButton::clicked, this, &DemoWindow::onSaveDocument);
-    connect(m_exportHtmlBtn, &QPushButton::clicked, this, &DemoWindow::onExportHtml);
+    connect(exportHtmlAction, &QAction::triggered, this, &DemoWindow::onExportHtml);
+    connect(exportDocxAction, &QAction::triggered, this, &DemoWindow::onExportDocx);
+    connect(exportPdfAction,  &QAction::triggered, this, &DemoWindow::onExportPdf);
     connect(m_importEditorBtn, &QPushButton::clicked, this, &DemoWindow::onImportEditorToKnowledge);
     connect(m_polishBtn, &QPushButton::clicked, this, &DemoWindow::onPolishSelection);
     connect(m_summaryBtn, &QPushButton::clicked, this, &DemoWindow::onSummarizeDocument);
@@ -324,6 +335,99 @@ void DemoWindow::onExportHtml() {
         return;
     }
     log(QStringLiteral("✓ 已导出 HTML: ") + path);
+}
+
+void DemoWindow::onExportDocx() {
+    exportCurrentDocument(conversion::Format::DOCX,
+                          QStringLiteral("导出 DOCX"),
+                          QStringLiteral("docmind-export.docx"),
+                          QStringLiteral("Word 文档 (*.docx)"));
+}
+
+void DemoWindow::onExportPdf() {
+    exportCurrentDocument(conversion::Format::PDF,
+                          QStringLiteral("导出 PDF"),
+                          QStringLiteral("docmind-export.pdf"),
+                          QStringLiteral("PDF 文档 (*.pdf)"));
+}
+
+void DemoWindow::exportCurrentDocument(conversion::Format targetFormat,
+                                       const QString& dialogTitle,
+                                       const QString& defaultFileName,
+                                       const QString& filter) {
+    if (!m_conversion) {
+        QMessageBox::warning(this, QStringLiteral("导出失败"),
+                             QStringLiteral("文档转换服务未初始化。"));
+        return;
+    }
+
+    const QString markdown = m_editor->toPlainText();
+    if (markdown.trimmed().isEmpty()) {
+        QMessageBox::information(this, QStringLiteral("提示"),
+                                 QStringLiteral("编辑器内容为空，无法导出。"));
+        return;
+    }
+
+    const QString outputPath = QFileDialog::getSaveFileName(
+        this,
+        dialogTitle,
+        QDir::homePath() + QLatin1Char('/') + defaultFileName,
+        filter);
+    if (outputPath.isEmpty()) return;
+
+    QString tempRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    if (tempRoot.isEmpty()) tempRoot = QDir::tempPath();
+    QDir().mkpath(tempRoot);
+    const QString tempPath = QDir(tempRoot).filePath(
+        QStringLiteral("docmind-export-%1.md")
+            .arg(QDateTime::currentMSecsSinceEpoch()));
+
+    QFile tempFile(tempPath);
+    if (!tempFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, QStringLiteral("导出失败"),
+                             QStringLiteral("无法创建临时 Markdown 文件: ") + tempFile.errorString());
+        return;
+    }
+    tempFile.write(markdown.toUtf8());
+    tempFile.close();
+
+    conversion::TaskInput input;
+    input.source_path = tempPath;
+    input.source_format = conversion::Format::Markdown;
+    input.target_format = targetFormat;
+    input.output_path = outputPath;
+    input.overwrite_existing = true;
+
+    const conversion::TaskHandle handle = m_conversion->submitConversion(input);
+    const QString targetName = targetFormat == conversion::Format::DOCX
+                               ? QStringLiteral("DOCX")
+                               : QStringLiteral("PDF");
+    log(QStringLiteral("→ 正在通过模块 B 导出 %1: %2").arg(targetName, outputPath));
+
+    connect(m_conversion, &conversion::ConversionService::taskCompleted,
+            this, [this, handle, tempPath, outputPath, targetName]
+            (conversion::TaskHandle h, const conversion::TaskOutput& output) {
+        if (h != handle) return;
+        QFile::remove(tempPath);
+        const QString product = output.product_path.value_or(outputPath);
+        log(QStringLiteral("✓ 已导出 %1: %2").arg(targetName, product));
+        QMessageBox::information(this,
+                                 QStringLiteral("导出完成"),
+                                 QStringLiteral("已导出 %1:\n%2").arg(targetName, product));
+    });
+
+    connect(m_conversion, &conversion::ConversionService::taskFailed,
+            this, [this, handle, tempPath, targetName]
+            (conversion::TaskHandle h, const conversion::TaskOutput& output) {
+        if (h != handle) return;
+        QFile::remove(tempPath);
+        const QString msg = output.error_message.value_or(
+            conversion::errorToUserMessage(output.error_code));
+        log(QStringLiteral("✗ 导出 %1 失败: %2").arg(targetName, msg));
+        QMessageBox::warning(this,
+                             QStringLiteral("导出失败"),
+                             QStringLiteral("导出 %1 失败:\n%2").arg(targetName, msg));
+    });
 }
 
 void DemoWindow::onImportEditorToKnowledge() {

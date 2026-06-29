@@ -11,10 +11,12 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QPushButton>
+#include <QToolButton>
 #include <QTextEdit>
 #include <QTextBrowser>
 #include <QListWidget>
 
+#include "conversion/Types.h"
 #include "storage/SettingsRepository.h"
 #include "storage/SecureCredentialStore.h"
 #include "ai/AIProvider.h"
@@ -39,6 +41,8 @@ private slots:
     void onOpenDocument();
     void onSaveDocument();
     void onExportHtml();
+    void onExportDocx();
+    void onExportPdf();
     void onImportEditorToKnowledge();
     void onPolishSelection();
     void onSummarizeDocument();
@@ -61,6 +65,10 @@ private:
     void refreshProvider();
     QString editorTitle() const;
     void updatePreview();
+    void exportCurrentDocument(conversion::Format targetFormat,
+                               const QString& dialogTitle,
+                               const QString& defaultFileName,
+                               const QString& filter);
     void runEditorAiAction(const QString& instruction,
                            bool replaceSelection,
                            const QString& label);
@@ -95,7 +103,7 @@ private:
     QPushButton* m_newDocBtn   = nullptr;
     QPushButton* m_openDocBtn  = nullptr;
     QPushButton* m_saveDocBtn  = nullptr;
-    QPushButton* m_exportHtmlBtn = nullptr;
+    QToolButton* m_exportBtn    = nullptr;
     QPushButton* m_importEditorBtn = nullptr;
     QPushButton* m_polishBtn   = nullptr;
     QPushButton* m_summaryBtn  = nullptr;
