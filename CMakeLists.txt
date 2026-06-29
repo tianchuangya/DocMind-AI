@@ -151,4 +151,4 @@ if(WIN32)
     endif()
 endif()
 
-message(STATUS "DocMindAI v${PROJECT_VERSION} — Qt ${Qt6_VERSION} (module C demo)")
+message(STATUS "DocMindAI v${PROJECT_VERSION} — Qt ${Qt6_VERSION} (module C)")
